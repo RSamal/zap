@@ -217,6 +217,9 @@ func (enc *jsonEncoder) WriteEntry(sink io.Writer, ent Entry, fields []Field) er
 		final.bytes = append(final.bytes, enc.bytes...)
 	}
 	addFields(final, fields)
+	if ent.Callers.Defined() {
+		final.AddString("callers", ent.Callers.String())
+	}
 	if ent.Stack != "" {
 		final.AddString("stacktrace", ent.Stack)
 	}

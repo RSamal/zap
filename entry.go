@@ -21,10 +21,14 @@
 package zap
 
 import (
+	"bytes"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 )
+
+const _maxCallers = 32
 
 var _cePool = sync.Pool{
 	New: func() interface{} {
@@ -63,17 +67,52 @@ func (ec EntryCaller) String() string {
 	return fmt.Sprintf("%s:%d", ec.File, ec.Line)
 }
 
-// An Entry represents a complete log message. The entry's structured context
-// is already serialized, but the log level, time, and message are available
-// for inspection and modification.
-//
-// Entries are pooled, so any functions that accept them must be careful not to
-// retain references to them.
+// TakeEntryCallers stores up to 32 caller PCs into a new EntryCallers value
+// using runtime.Callers.
+func TakeEntryCallers(skip int) EntryCallers {
+	var ecs EntryCallers
+	runtime.Callers(skip, ecs[:])
+	return ecs
+}
+
+// EntryCallers is up to 32 caller PCs relative to a log site.
+type EntryCallers [_maxCallers]uintptr
+
+// Defined returns true if any non-zero PC has been recorded.
+func (ecs EntryCallers) Defined() bool {
+	for _, pc := range ecs {
+		if pc != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// String returns a stacktrace from the caller PCs.
+func (ecs EntryCallers) String() string {
+	var buf bytes.Buffer
+	frames := runtime.CallersFrames(ecs[:])
+	for frame, more := frames.Next(); more; frame, more = frames.Next() {
+		if frame.Func == nil {
+			fmt.Fprintf(&buf, "%s:%d\n", frame.File, frame.Line)
+			continue
+		}
+		// TODO: recover any +0xXX ?
+		file, line := frame.Func.FileLine(frame.PC)
+		fmt.Fprintf(&buf, "%s\n\t%s:%d\n", frame.Func.Name(), file, line)
+	}
+	return buf.String()
+}
+
+// An Entry represents a log mesasge being logged. It is created to capture
+// state beneath a Logger method, like Info, and passed around to all Facility
+// values attached to the logger.
 type Entry struct {
 	Level   Level
 	Time    time.Time
 	Message string
 	Caller  EntryCaller
+	Callers EntryCallers
 	Stack   string
 }
 

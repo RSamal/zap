@@ -140,6 +140,10 @@ func (enc *textEncoder) WriteEntry(sink io.Writer, ent Entry, fields []Field) er
 		final.bytes = append(final.bytes, enc.bytes...)
 	}
 	addFields(final, fields) // NOTE: we could choose to add the log-site fields first before contextual ones
+	if ent.Callers.Defined() {
+		// NOTE: could just add ent.Callers.String() on a new line for better readability.
+		final.AddString("callers", ent.Callers.String())
+	}
 	if ent.Stack != "" {
 		final.AddString("stacktrace", ent.Stack)
 	}
