@@ -64,7 +64,7 @@ func (s *Sink) Logs() []Log {
 // Facility implements a zap.Facility that captures Log records.
 type Facility struct {
 	sync.Mutex
-	enab    zap.LevelEnabler
+	zap.LevelEnabler
 	sink    *Sink
 	context []zap.Field
 }
@@ -73,15 +73,15 @@ type Facility struct {
 // have the given fields attached.
 func (sf *Facility) With(fields ...zap.Field) zap.Facility {
 	return &Facility{
-		enab:    sf.enab,
-		sink:    sf.sink,
-		context: append(sf.context, fields...),
+		LevelEnabler: sf.LevelEnabler,
+		sink:         sf.sink,
+		context:      append(sf.context, fields...),
 	}
 }
 
 // Log writes the entry if its level is enabled.
 func (sf *Facility) Log(ent zap.Entry, fields ...zap.Field) error {
-	if sf.enab.Enabled(ent.Level) {
+	if sf.Enabled(ent.Level) {
 		return sf.Write(ent, fields)
 	}
 	return nil
@@ -99,7 +99,7 @@ func (sf *Facility) Write(ent zap.Entry, fields []zap.Field) error {
 // Check adds this spy facility to the CheckedEntry build built if the Entry's
 // level is enabled.
 func (sf *Facility) Check(ent zap.Entry, ce *zap.CheckedEntry) *zap.CheckedEntry {
-	if sf.enab.Enabled(ent.Level) {
+	if sf.Enabled(ent.Level) {
 		ce = ce.AddFacility(ent, sf)
 	}
 	return ce
@@ -108,8 +108,8 @@ func (sf *Facility) Check(ent zap.Entry, ce *zap.CheckedEntry) *zap.CheckedEntry
 // New creates a new Facility and returns it and its associated Sink.
 func New(enab zap.LevelEnabler) (zap.Facility, *Sink) {
 	fac := &Facility{
-		enab: enab,
-		sink: &Sink{},
+		LevelEnabler: enab,
+		sink:         &Sink{},
 	}
 	return fac, fac.sink
 }
