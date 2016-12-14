@@ -63,7 +63,6 @@ func (s *Sink) Logs() []Log {
 
 // Facility implements a zap.Facility that captures Log records.
 type Facility struct {
-	sync.Mutex
 	zap.LevelEnabler
 	sink    *Sink
 	context []zap.Field
