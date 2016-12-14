@@ -70,8 +70,8 @@ type logger struct {
 }
 
 // New returns a new logger with sensible defaults: logging at InfoLevel,
-// development mode off, errors writtten to stdand error, and logs JSON encoded
-// to standard output.
+// development mode off, errors writtten to standard error, and logs JSON
+// encoded to standard output.
 func New(fac Facility, options ...Option) Logger {
 	if fac == nil {
 		fac = WriterFacility(NewJSONEncoder(), nil, InfoLevel)
